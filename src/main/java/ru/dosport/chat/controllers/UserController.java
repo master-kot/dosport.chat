@@ -35,6 +35,6 @@ public class UserController {
     @ApiOperation(value = "Выводит данные пользователя")
     @GetMapping(value = "", produces = DATA_TYPE)
     public ResponseEntity<UserDto> readUser(Authentication authentication) {
-        return new ResponseEntity<>(userService.getDtoByUsername(authentication.getName()), HttpStatus.OK);
+        return new ResponseEntity<>(userService.getDtoByAuthentication(authentication), HttpStatus.OK);
     }
 }

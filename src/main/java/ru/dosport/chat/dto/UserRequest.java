@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
+import java.util.List;
 
-import static ru.dosport.chat.helpers.Messages.*;
+import static ru.dosport.chat.helpers.Messages.DATA_NOT_BLANK;
 
 /**
  * Запрос для регистрации нового Пользователя
@@ -15,13 +15,12 @@ import static ru.dosport.chat.helpers.Messages.*;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UserRequest {
 
-    @Size(min=4, max=50, message = INVALID_USERNAME_LENGTH)
+    private Long id;
+
     @NotBlank(message = DATA_NOT_BLANK + "Логин")
     private String username;
 
-    @Size(min=4, max=20, message = INVALID_PASSWORD_LENGTH)
-    @NotBlank(message = DATA_NOT_BLANK + "Пароль")
-    private String password;
-
     private String firstName;
+
+    private List<String> authorities;
 }

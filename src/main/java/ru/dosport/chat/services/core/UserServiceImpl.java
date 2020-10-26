@@ -1,6 +1,7 @@
 package ru.dosport.chat.services.core;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -8,7 +9,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import ru.dosport.chat.dto.UserDto;
 import ru.dosport.chat.dto.UserRequest;
-import ru.dosport.chat.entities.Authority;
 import ru.dosport.chat.entities.User;
 import ru.dosport.chat.exceptions.DataBadRequestException;
 import ru.dosport.chat.exceptions.DataNotFoundException;
@@ -21,7 +21,6 @@ import ru.dosport.chat.services.api.UserService;
 import java.util.List;
 
 import static ru.dosport.chat.helpers.Messages.*;
-import static ru.dosport.chat.helpers.Roles.ROLE_USER;
 
 /**
  * Сервис пользователей
@@ -44,18 +43,18 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public User getByUsername(String username) {
-        return findByUsername(username);
-    }
-
-    @Override
-    public UserDto getDtoByUsername(String username) {
-        return userMapper.mapEntityToDto(findByUsername(username));
+    public UserDto getDtoByAuthentication(Authentication authentication) {
+        return userMapper.mapEntityToDto(findById(getUserId(authentication)));
     }
 
     @Override
     public JwtUser getJwtByUsername(String username) {
         return userMapper.mapEntityToJwt(findByUsername(username));
+    }
+
+    @Override
+    public Long getIdByAuthentication(Authentication authentication) {
+        return getUserId(authentication);
     }
 
     @Override
@@ -71,21 +70,15 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         }
 
         User newUser = userMapper.mapDtoToEntity(userRequest);
-        newUser.setPassword(passwordEncoder.encode(userRequest.getPassword()));
-        Authority authority = authorityRepository.findByAuthority(ROLE_USER);
-        newUser.getAuthorities().add(authority);
+        for (String authority : userRequest.getAuthorities()) {
+            newUser.getAuthorities().add(authorityRepository.findByAuthority(authority));
+        }
         return userMapper.mapEntityToDto(userRepository.save(newUser));
     }
 
     @Override
-    public UserDto update(UserDto userDto, String username) {
-        User user = userMapper.update(findByUsername(username), userDto);
-        return userMapper.mapEntityToDto(userRepository.save(user));
-    }
-
-    @Override
-    public UserDto update(UserDto userDto, Long id) {
-        User user = userMapper.update(findById(id), userDto);
+    public UserDto update(UserDto userDto, Authentication authentication) {
+        User user = userMapper.update(findById(getUserId(authentication)), userDto);
         return userMapper.mapEntityToDto(userRepository.save(user));
     }
 
@@ -114,5 +107,12 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private User findByUsername(String username) {
         return userRepository.findByUsername(username).orElseThrow(
                 () -> new UsernameNotFoundException(String.format(USER_NOT_FOUND_BY_USERNAME, username)));
+    }
+
+    /**
+     * Получить id пользователя по данным аутентификации
+     */
+    private Long getUserId(Authentication authentication) {
+        return ((JwtUser) authentication.getPrincipal()).getId();
     }
 }

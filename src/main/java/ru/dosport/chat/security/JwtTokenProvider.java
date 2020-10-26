@@ -7,8 +7,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
+import ru.dosport.chat.dto.UserRequest;
 import ru.dosport.chat.exceptions.JwtAuthenticationException;
+import ru.dosport.chat.services.api.UserService;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
@@ -34,14 +37,18 @@ public class JwtTokenProvider {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private UserService userService;
+
     @PostConstruct
     protected void init() {
         secret = Base64.getEncoder().encodeToString(secret.getBytes());
     }
 
-    public String createToken(String username, List<String> roles) {
+    public String createToken(String username, Long id, List<String> roles) {
 
         Claims claims = Jwts.claims().setSubject(username);
+        claims.put("id", id);
         claims.put("roles", roles);
 
         Date now = new Date();
@@ -56,7 +63,12 @@ public class JwtTokenProvider {
     }
 
     public Authentication getAuthentication(String token) {
-        UserDetails userDetails = this.userDetailsService.loadUserByUsername(getUsername(token));
+        UserDetails userDetails;
+        try {
+            userDetails = this.userDetailsService.loadUserByUsername(getUsername(token));
+        } catch (UsernameNotFoundException e) {
+            userDetails = createUserDetailsByToken(token);
+        }
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 
@@ -77,6 +89,20 @@ public class JwtTokenProvider {
             Jws<Claims> claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
             return !claims.getBody().getExpiration().before(new Date());
         } catch (JwtException | IllegalArgumentException e) {
+            throw new JwtAuthenticationException(JWT_TOKEN_NOT_VALID);
+        }
+    }
+
+    private UserDetails createUserDetailsByToken(String token) {
+        Claims claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+        try {
+            UserRequest userRequest = new UserRequest();
+            userRequest.setUsername(claims.getSubject());
+            userRequest.setAuthorities((List<String>) claims.get("roles"));
+            userRequest.setId(((Integer) claims.get("id")).longValue());
+            userService.save(userRequest);
+            return this.userDetailsService.loadUserByUsername(claims.getSubject());
+        } catch (ClassCastException e) {
             throw new JwtAuthenticationException(JWT_TOKEN_NOT_VALID);
         }
     }
