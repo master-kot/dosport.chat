@@ -1,6 +1,6 @@
-DROP TABLE IF EXISTS users_authorities;
+DROP TABLE IF EXISTS user_authorities;
 
-CREATE TABLE users_authorities
+CREATE TABLE user_authorities
 (
     user_id      BIGINT,
     authority_id SMALLINT,

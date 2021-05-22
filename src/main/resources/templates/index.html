@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>React App</title>
+    <script src="./js/sockjs-0.3.4.js"></script>
+    <script src="./js/stomp.js"></script>
+    <script type="text/javascript">
+            var stompClient = null;
+
+            function setConnected(connected) {
+                document.getElementById('connect').disabled = connected;
+                document.getElementById('disconnect').disabled = !connected;
+                document.getElementById('userConversationDiv').style.visibility
+                  = connected ? 'visible' : 'hidden';
+                document.getElementById('eventConversationDiv').style.visibility
+                  = connected ? 'visible' : 'hidden';
+                document.getElementById('userResponse').innerHTML = '';
+                document.getElementById('eventResponse').innerHTML = '';
+            }
+
+            function connect() {
+                var senderId = document.getElementById('senderId').value;
+                var socket = new SockJS('/ws');
+                stompClient = Stomp.over(socket);
+                stompClient.connect({}, function(frame) {
+                    setConnected(true);
+                    console.log('Connected: ' + frame);
+                    stompClient.subscribe('/user/' + senderId + '/queue/messages', function(messageOutput) {
+                        showUserMessage(JSON.parse(messageOutput.body));
+                    });
+                    stompClient.subscribe('/event', function(messageOutput) {
+                        showEventMessage(JSON.parse(messageOutput.body));
+                    });
+                });
+            }
+
+            function disconnect() {
+                if(stompClient != null) {
+                    stompClient.disconnect();
+                }
+                setConnected(false);
+                console.log("Disconnected");
+            }
+
+            function sendUserMessage() {
+                const message = {
+                    'senderId': document.getElementById('senderId').value,
+                    'recipientId': document.getElementById('userId').value,
+                    'content': document.getElementById('userContent').value,
+                };
+                stompClient.send("/app/user", {}, JSON.stringify(message));
+            }
+
+            function sendEventMessage() {
+                var eventId = document.getElementById('eventId').value;
+                const message = {
+                    'senderId': document.getElementById('senderId').value,
+                    'recipientId': document.getElementById('eventId').value,
+                    'content': document.getElementById('eventContent').value,
+                };
+                stompClient.send("/app/event", {}, JSON.stringify(message));
+            }
+
+            function showUserMessage(messageOutput) {
+                var response = document.getElementById('userResponse');
+                var p = document.createElement('p');
+                p.style.wordWrap = 'break-word';
+                p.appendChild(document.createTextNode(
+                    "messageId " + messageOutput.id +
+                    ", senderId " + messageOutput.senderId +
+                    " wrote to userId " + messageOutput.recipientId +
+                    " text: " + messageOutput.content
+                ));
+                response.appendChild(p);
+            }
+
+            function showEventMessage(messageOutput) {
+                var response = document.getElementById('eventResponse');
+                var p = document.createElement('p');
+                p.style.wordWrap = 'break-word';
+                p.appendChild(document.createTextNode(
+                    "messageId " + messageOutput.id +
+                    ", senderId " + messageOutput.senderId +
+                    " wrote for eventId " + messageOutput.eventId +
+                    " text: " + messageOutput.content
+                ));
+                response.appendChild(p);
+            }
+    </script>
+
+</head>
+<body onload="disconnect()">
+<div>
+    <div>
+        <input type="text" id="senderId" placeholder="Sender Id"/>
+    </div>
+    <br />
+    <div>
+        <button id="connect" onclick="connect();">Connect</button>
+        <button id="disconnect" disabled="disabled" onclick="disconnect();">
+            Disconnect
+        </button>
+    </div>
+    <br />
+    <div id="userConversationDiv">
+        <input type="text" id="userContent" placeholder="Write an user message"/>
+        <input type="text" id="userId" placeholder="User Id"/>
+        <button id="sendUserMessage" onclick="sendUserMessage();">Send</button>
+        <p id="userResponse"></p>
+    </div>
+    <br />
+    <div id="eventConversationDiv">
+        <input type="text" id="eventContent" placeholder="Write an event message"/>
+        <input type="text" id="eventId" placeholder="Event Id"/>
+        <button id="sendEventMessage" onclick="sendEventMessage();">Send</button>
+        <p id="eventResponse"></p>
+    </div>
+</div>
+
+</body>
+</html>

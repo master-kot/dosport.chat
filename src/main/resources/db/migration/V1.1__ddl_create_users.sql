@@ -6,6 +6,6 @@ CREATE TABLE users
     user_name     VARCHAR(128) NOT NULL UNIQUE,
     password      VARCHAR(128),
     enabled       BOOLEAN NOT NULL,
-    first_name    VARCHAR(128),
+    photo_link      VARCHAR(255),
     PRIMARY KEY (id)
 );
