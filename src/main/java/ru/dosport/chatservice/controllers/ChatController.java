@@ -30,8 +30,6 @@ import static ru.dosport.main.helpers.SwaggerMessages.*;
 @Api(tags = {"Контроллер Сообщений чатов"})
 public class ChatController {
 
-    private final String PATH = "/api/v1";
-
     private final SimpMessagingTemplate messagingTemplate;
     private final UserMessageService userMessageService;
     private final EventMessageService eventMessageService;

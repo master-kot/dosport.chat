@@ -59,8 +59,7 @@ public class UserMessageServiceImpl implements UserMessageService {
                 .orElseThrow(() -> new DataNotFoundException(String.format(DATA_NOT_FOUND_BY_ID, id)));
     }
 
-    @Override
-    public void updateStatuses(List<UserMessage> userMessageList, MessageStatus status) {
+    private void updateStatuses(List<UserMessage> userMessageList, MessageStatus status) {
         userMessageList.forEach(cm -> cm.setStatus(status));
         userMessageRepository.saveAll(userMessageList);
     }
